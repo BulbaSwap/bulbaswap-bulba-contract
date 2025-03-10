@@ -98,7 +98,32 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
         emit Unstaked(msg.sender, stakeInfo.amount,  lockPeriod);
     }
 
-    function getStakeInfo(address user, uint256 lockPeriod) external view returns (
+    // Emergency function to withdraw tokens (only owner)
+    function emergencyWithdraw(uint256 amount) external onlyOwner {
+        require(amount <= stakingToken.balanceOf(address(this)), "Insufficient balance");
+        stakingToken.transfer(owner(), amount);
+    }
+
+    // Function to set the controller
+    function setController(address _controller) external onlyOwner {
+        controller = _controller;
+    }
+
+    // Function for the controller to transfer tokens
+    function transferTokens(address to, uint256 amount) external onlyController {
+        require(amount <= stakingToken.balanceOf(address(this)), "Insufficient balance");
+        stakingToken.transfer(to, amount);
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+function getStakeInfo(address user, uint256 lockPeriod) external view returns (
         uint256 amount,
         uint256 startTime,
         bool isActive,
@@ -143,31 +168,6 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
                 timeUntilUnlocks[i] = (startTimes[i] + periods[i]) - block.timestamp;
             }
         }
-    }
-
-    // Emergency function to withdraw tokens (only owner)
-    function emergencyWithdraw(uint256 amount) external onlyOwner {
-        require(amount <= stakingToken.balanceOf(address(this)), "Insufficient balance");
-        stakingToken.transfer(owner(), amount);
-    }
-
-    // Function to set the controller
-    function setController(address _controller) external onlyOwner {
-        controller = _controller;
-    }
-
-    // Function for the controller to transfer tokens
-    function transferTokens(address to, uint256 amount) external onlyController {
-        require(amount <= stakingToken.balanceOf(address(this)), "Insufficient balance");
-        stakingToken.transfer(to, amount);
-    }
-
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    function unpause() external onlyOwner {
-        _unpause();
     }
 
     // Gap for future upgrades
