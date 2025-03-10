@@ -206,4 +206,76 @@ describe("MockTokenStaking (Proxy)", function () {
       expect(newStartTime).to.be.greaterThan(initialStartTime);
     });
   });
+
+  describe("Restaking Increases Amount", function () {
+    it("Should increase the total staked amount when staking again", async function () {
+      const lockPeriod = await stakingProxy.THIRTY_DAYS();
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, lockPeriod);
+
+      // Capture the initial staked amount
+      const initialStakeInfo = await stakingProxy.getStakeInfo(addr1.address, lockPeriod);
+      const initialAmount = initialStakeInfo.amount;
+
+      // Stake again
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, lockPeriod);
+
+      // Capture the new staked amount
+      const newStakeInfo = await stakingProxy.getStakeInfo(addr1.address, lockPeriod);
+      const newAmount = newStakeInfo.amount;
+
+      // Verify that the new amount is the sum of the initial amount and the staked amount
+      expect(newAmount).to.equal(initialAmount + STAKE_AMOUNT);
+    });
+  });
+
+  describe("Unstake Clears Stake Info", function () {
+    it("Should clear the user's stake information after unstaking", async function () {
+      const lockPeriod = await stakingProxy.THIRTY_DAYS();
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, lockPeriod);
+
+      // Advance time to allow unstaking
+      await time.increase(31 * 24 * 60 * 60); // Advance 31 days
+
+      // Unstake
+      await stakingProxy.connect(addr1).unstake(lockPeriod);
+
+      // Verify that the user's stake information is cleared
+      const stakeInfo = await stakingProxy.getStakeInfo(addr1.address, lockPeriod);
+      expect(stakeInfo.amount).to.equal(0);
+      expect(stakeInfo.isActive).to.be.false;
+    });
+  });
+
+  describe("Insufficient Balance Handling", function () {
+    it("Should not allow unstaking when contract balance is insufficient", async function () {
+      const lockPeriod = await stakingProxy.THIRTY_DAYS();
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, lockPeriod);
+
+      // Simulate insufficient balance by transferring tokens out
+      await stakingProxy.connect(owner).setController(owner.address);
+      await stakingProxy.transferTokens(owner.address, STAKE_AMOUNT);
+
+      // Advance time to allow unstaking
+      await time.increase(31 * 24 * 60 * 60); // Advance 31 days
+
+      // Attempt to unstake
+      await expect(
+        stakingProxy.connect(addr1).unstake(lockPeriod)
+      ).to.be.revertedWith("Insufficient contract balance");
+    });
+
+    it("Should not allow controller to transfer tokens when contract balance is insufficient", async function () {
+      await stakingProxy.connect(owner).setController(addr1.address);
+
+      // Simulate insufficient balance by transferring tokens out
+      await mockToken.transfer(owner.address, STAKE_AMOUNT);
+
+      const transferAmount = ethers.parseEther("100");
+
+      // Attempt to transfer tokens
+      await expect(
+        stakingProxy.connect(addr1).transferTokens(addr2.address, transferAmount)
+      ).to.be.revertedWith("Insufficient balance");
+    });
+  });
 }); 

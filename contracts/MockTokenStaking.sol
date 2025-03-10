@@ -7,7 +7,12 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable {
+contract MockTokenStaking is
+    Initializable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable
+{
     IERC20 public stakingToken;
 
     // Staking periods in seconds
@@ -22,11 +27,12 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
     }
 
     // Mapping from address to lock period to stake info
-    mapping(address user => mapping(uint256 lockPeriod => StakeInfo stakeInfo)) public stakes;
+    mapping(address user => mapping(uint256 lockPeriod => StakeInfo stakeInfo))
+        public stakes;
 
     // Define a controller role can transfer
     address public controller;
-    
+
     event Staked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Unstaked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Initialized(address stakingToken);
@@ -46,22 +52,25 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
         __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
         __Pausable_init();
-        
+
         stakingToken = IERC20(_stakingToken);
         emit Initialized(_stakingToken);
     }
 
-    function stake(uint256 amount, uint256 lockPeriod) external nonReentrant whenNotPaused {
+    function stake(
+        uint256 amount,
+        uint256 lockPeriod
+    ) external nonReentrant whenNotPaused {
         require(amount > 0, "Cannot stake 0 tokens");
         require(
-            lockPeriod == THIRTY_DAYS || 
-            lockPeriod == SIXTY_DAYS || 
-            lockPeriod == NINETY_DAYS,
+            lockPeriod == THIRTY_DAYS ||
+                lockPeriod == SIXTY_DAYS ||
+                lockPeriod == NINETY_DAYS,
             "Invalid lock period"
         );
         uint256 amountPre = stakes[msg.sender][lockPeriod].amount;
         stakingToken.transferFrom(msg.sender, address(this), amount);
-        
+
         stakes[msg.sender][lockPeriod] = StakeInfo({
             amount: amount + amountPre,
             startTime: block.timestamp,
@@ -73,12 +82,12 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
 
     function unstake(uint256 lockPeriod) external nonReentrant whenNotPaused {
         require(
-            lockPeriod == THIRTY_DAYS || 
-            lockPeriod == SIXTY_DAYS || 
-            lockPeriod == NINETY_DAYS,
+            lockPeriod == THIRTY_DAYS ||
+                lockPeriod == SIXTY_DAYS ||
+                lockPeriod == NINETY_DAYS,
             "Invalid lock period"
         );
-        
+
         StakeInfo memory stakeInfo = stakes[msg.sender][lockPeriod];
         require(stakeInfo.isActive, "No active stake for this period");
         require(
@@ -95,12 +104,15 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
         delete stakes[msg.sender][lockPeriod];
         stakingToken.transfer(msg.sender, stakeAmount);
 
-        emit Unstaked(msg.sender, stakeInfo.amount,  lockPeriod);
+        emit Unstaked(msg.sender, stakeInfo.amount, lockPeriod);
     }
 
     // Emergency function to withdraw tokens (only owner)
     function emergencyWithdraw(uint256 amount) external onlyOwner {
-        require(amount <= stakingToken.balanceOf(address(this)), "Insufficient balance");
+        require(
+            amount <= stakingToken.balanceOf(address(this)),
+            "Insufficient balance"
+        );
         stakingToken.transfer(owner(), amount);
     }
 
@@ -110,8 +122,14 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
     }
 
     // Function for the controller to transfer tokens
-    function transferTokens(address to, uint256 amount) external onlyController {
-        require(amount <= stakingToken.balanceOf(address(this)), "Insufficient balance");
+    function transferTokens(
+        address to,
+        uint256 amount
+    ) external onlyController {
+        require(
+            amount <= stakingToken.balanceOf(address(this)),
+            "Insufficient balance"
+        );
         stakingToken.transfer(to, amount);
     }
 
@@ -123,16 +141,23 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
         _unpause();
     }
 
-function getStakeInfo(address user, uint256 lockPeriod) external view returns (
-        uint256 amount,
-        uint256 startTime,
-        bool isActive,
-        uint256 timeUntilUnlock
-    ) {
+    function getStakeInfo(
+        address user,
+        uint256 lockPeriod
+    )
+        external
+        view
+        returns (
+            uint256 amount,
+            uint256 startTime,
+            bool isActive,
+            uint256 timeUntilUnlock
+        )
+    {
         require(
-            lockPeriod == THIRTY_DAYS || 
-            lockPeriod == SIXTY_DAYS || 
-            lockPeriod == NINETY_DAYS,
+            lockPeriod == THIRTY_DAYS ||
+                lockPeriod == SIXTY_DAYS ||
+                lockPeriod == NINETY_DAYS,
             "Invalid lock period"
         );
 
@@ -148,28 +173,38 @@ function getStakeInfo(address user, uint256 lockPeriod) external view returns (
         }
     }
 
-    function getAllStakes(address user) external view returns (
-        uint256[3] memory amounts,
-        uint256[3] memory startTimes,
-        bool[3] memory isActives,
-        uint256[3] memory timeUntilUnlocks
-    ) {
+    function getAllStakes(
+        address user
+    )
+        external
+        view
+        returns (
+            uint256[3] memory amounts,
+            uint256[3] memory startTimes,
+            bool[3] memory isActives,
+            uint256[3] memory timeUntilUnlocks
+        )
+    {
         uint256[3] memory periods = [THIRTY_DAYS, SIXTY_DAYS, NINETY_DAYS];
-        
+
         for (uint256 i = 0; i < 3; i++) {
             StakeInfo storage stakeInfo = stakes[user][periods[i]];
             amounts[i] = stakeInfo.amount;
             startTimes[i] = stakeInfo.startTime;
             isActives[i] = stakeInfo.isActive;
 
-            if (!isActives[i] || block.timestamp >= startTimes[i] + periods[i]) {
+            if (
+                !isActives[i] || block.timestamp >= startTimes[i] + periods[i]
+            ) {
                 timeUntilUnlocks[i] = 0;
             } else {
-                timeUntilUnlocks[i] = (startTimes[i] + periods[i]) - block.timestamp;
+                timeUntilUnlocks[i] =
+                    (startTimes[i] + periods[i]) -
+                    block.timestamp;
             }
         }
     }
 
     // Gap for future upgrades
     uint256[50] private __gap;
-} 
+}
