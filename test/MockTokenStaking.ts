@@ -183,4 +183,27 @@ describe("MockTokenStaking (Proxy)", function () {
       ).to.be.revertedWithCustomError(stakingProxy, "EnforcedPause");
     });
   });
+
+  describe("Staking Time Update", function () {
+    it("Should update the start time to the latest time when staking again", async function () {
+      const lockPeriod = await stakingProxy.THIRTY_DAYS();
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, lockPeriod);
+
+      // Capture the initial start time
+      const initialStakeInfo = await stakingProxy.getStakeInfo(addr1.address, lockPeriod);
+      const initialStartTime = initialStakeInfo.startTime;
+
+      // Advance time and stake again
+      await time.increase(5 * 24 * 60 * 60); // Advance 5 days
+
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, lockPeriod);
+
+      // Capture the new start time
+      const newStakeInfo = await stakingProxy.getStakeInfo(addr1.address, lockPeriod);
+      const newStartTime = newStakeInfo.startTime;
+
+      // Verify that the new start time is greater than the initial start time
+      expect(newStartTime).to.be.greaterThan(initialStartTime);
+    });
+  });
 }); 

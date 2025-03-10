@@ -63,7 +63,7 @@ contract MockTokenStaking is Initializable, OwnableUpgradeable, ReentrancyGuardU
         stakingToken.transferFrom(msg.sender, address(this), amount);
         
         stakes[msg.sender][lockPeriod] = StakeInfo({
-            amount: amount+amountPre,
+            amount: amount + amountPre,
             startTime: block.timestamp,
             isActive: true
         });
