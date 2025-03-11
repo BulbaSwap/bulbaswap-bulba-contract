@@ -42,6 +42,7 @@ contract BulbasaurStaking is
     event Staked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Unstaked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Initialized(address stakingToken);
+    event Claimed(address indexed user, uint256 amount, uint256 nonce);
 
     // Modifier to restrict access to the backend signer
     modifier onlyBackendSigner() {
@@ -187,6 +188,7 @@ contract BulbasaurStaking is
         );
         nonces[msg.sender] += 1;
         stakingToken.transfer(msg.sender, amount);
+        emit Claimed(msg.sender, amount, nonce);
     }
 
     /**
