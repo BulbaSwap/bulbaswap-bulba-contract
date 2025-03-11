@@ -9,8 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import "hardhat/console.sol";
-contract MockTokenStaking is
+contract BulbasaurStaking is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,

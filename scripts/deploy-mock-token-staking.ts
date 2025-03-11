@@ -12,8 +12,8 @@ async function main() {
   console.log("MockToken deployed to:", await mockToken.getAddress());
 
   // Deploy implementation contract
-  const MockTokenStaking = await ethers.getContractFactory("MockTokenStaking");
-  const stakingImplementation = await MockTokenStaking.deploy();
+  const BulbasaurStaking = await ethers.getContractFactory("BulbasaurStaking");
+  const stakingImplementation = await BulbasaurStaking.deploy();
   await stakingImplementation.waitForDeployment();
   console.log("Staking Implementation deployed to:", await stakingImplementation.getAddress());
 
@@ -24,7 +24,7 @@ async function main() {
   console.log("ProxyAdmin deployed to:", await proxyAdmin.getAddress());
 
   // Prepare initialization data
-  const initData = MockTokenStaking.interface.encodeFunctionData("initialize", [
+  const initData = BulbasaurStaking.interface.encodeFunctionData("initialize", [
     await mockToken.getAddress()
   ]);
 
@@ -39,7 +39,7 @@ async function main() {
   console.log("Proxy deployed to:", await proxy.getAddress());
 
   // Get proxy contract instance
-  const stakingContract = MockTokenStaking.attach(await proxy.getAddress());
+  const stakingContract = BulbasaurStaking.attach(await proxy.getAddress());
   console.log("Staking contract (proxy) is ready at:", await stakingContract.getAddress());
 
   // Verify contracts on Etherscan
@@ -81,7 +81,7 @@ async function main() {
   console.log("Implementation:", await stakingImplementation.getAddress());
   console.log("ProxyAdmin:", await proxyAdmin.getAddress());
   console.log("Proxy:", await proxy.getAddress());
-  console.log("\nTo interact with the contract, use the proxy address with the MockTokenStaking ABI");
+  console.log("\nTo interact with the contract, use the proxy address with the BulbasaurStaking ABI");
 }
 
 main()

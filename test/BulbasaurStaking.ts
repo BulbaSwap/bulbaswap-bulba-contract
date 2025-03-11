@@ -1,12 +1,12 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { MockToken, MockTokenStaking } from "../typechain-types";
+import { MockToken, BulbasaurStaking } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
-describe("MockTokenStaking (Proxy)", function () {
+describe("BulbasaurStaking (Proxy)", function () {
   let mockToken: MockToken;
-  let stakingProxy: MockTokenStaking;
+  let stakingProxy: BulbasaurStaking;
   let owner: SignerWithAddress;
   let addr1: SignerWithAddress;
   let addr2: SignerWithAddress;
@@ -22,8 +22,8 @@ describe("MockTokenStaking (Proxy)", function () {
     mockToken = await MockTokenFactory.deploy("Mock Token", "MTK", INITIAL_SUPPLY);
 
     // Deploy Staking contract through proxy
-    const MockTokenStakingFactory = await ethers.getContractFactory("MockTokenStaking");
-    stakingProxy = await upgrades.deployProxy(MockTokenStakingFactory, [await mockToken.getAddress(), owner.address, owner.address]) as MockTokenStaking;
+    const BulbasaurStakingFactory = await ethers.getContractFactory("BulbasaurStaking");
+    stakingProxy = await upgrades.deployProxy(BulbasaurStakingFactory, [await mockToken.getAddress(), owner.address, owner.address]) as BulbasaurStaking;
     await stakingProxy.waitForDeployment();
 
     // Transfer tokens and approve
@@ -91,8 +91,8 @@ describe("MockTokenStaking (Proxy)", function () {
 
   describe("Upgrades", function () {
     it("Should be able to upgrade implementation", async function () {
-      const MockTokenStakingV2 = await ethers.getContractFactory("MockTokenStaking");
-      await upgrades.upgradeProxy(await stakingProxy.getAddress(), MockTokenStakingV2);
+      const BulbasaurStakingV2 = await ethers.getContractFactory("BulbasaurStaking");
+      await upgrades.upgradeProxy(await stakingProxy.getAddress(), BulbasaurStakingV2);
 
       // Verify functionality still works after upgrade
       await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, await stakingProxy.THIRTY_DAYS());
