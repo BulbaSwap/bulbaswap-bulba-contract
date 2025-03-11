@@ -6,14 +6,20 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
+import "hardhat/console.sol";
 contract MockTokenStaking is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable
 {
-    IERC20 public stakingToken;
+    using MessageHashUtils for bytes32;
+    using ECDSA for bytes32;
+
+    IERC20 public stakingToken; // The ERC20 token used for staking
 
     // Staking periods in seconds
     uint256 public constant THIRTY_DAYS = 30 days;
@@ -21,25 +27,29 @@ contract MockTokenStaking is
     uint256 public constant NINETY_DAYS = 90 days;
 
     struct StakeInfo {
-        uint256 amount;
-        uint256 startTime;
-        bool isActive;
+        uint256 amount; // Amount of tokens staked
+        uint256 startTime; // Timestamp when the stake was made
+        bool isActive; // Whether the stake is active
     }
+
+    address public backendSigner; // Address of the backend signer for secure claims
 
     // Mapping from address to lock period to stake info
     mapping(address user => mapping(uint256 lockPeriod => StakeInfo stakeInfo))
         public stakes;
 
-    // Define a controller role can transfer
-    address public controller;
+    mapping(address user => uint256 nonce) public nonces; // Nonce for each user to prevent replay attacks
 
     event Staked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Unstaked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Initialized(address stakingToken);
 
-    // Modifier to restrict access to the controller
-    modifier onlyController() {
-        require(msg.sender == controller, "Caller is not the controller");
+    // Modifier to restrict access to the backend signer
+    modifier onlyBackendSigner() {
+        require(
+            msg.sender == backendSigner,
+            "Caller is not the backend signer"
+        );
         _;
     }
 
@@ -48,15 +58,31 @@ contract MockTokenStaking is
         _disableInitializers();
     }
 
-    function initialize(address _stakingToken) public initializer {
-        __Ownable_init(msg.sender);
+    /**
+     * @dev Initializes the staking contract with the given token, backend signer, and owner.
+     * @param _stakingToken The address of the ERC20 token to be used for staking.
+     * @param _backendSigner The address of the backend signer.
+     * @param _owner The address of the owner.
+     */
+    function initialize(
+        address _stakingToken,
+        address _backendSigner,
+        address _owner
+    ) public initializer {
+        __Ownable_init(_owner);
         __ReentrancyGuard_init();
         __Pausable_init();
 
         stakingToken = IERC20(_stakingToken);
+        backendSigner = _backendSigner;
         emit Initialized(_stakingToken);
     }
 
+    /**
+     * @dev Allows users to stake tokens for a specified lock period.
+     * @param amount The amount of tokens to stake.
+     * @param lockPeriod The lock period for the stake.
+     */
     function stake(
         uint256 amount,
         uint256 lockPeriod
@@ -80,6 +106,10 @@ contract MockTokenStaking is
         emit Staked(msg.sender, amount, lockPeriod);
     }
 
+    /**
+     * @dev Allows users to unstake their tokens after the lock period has ended.
+     * @param lockPeriod The lock period of the stake to unstake.
+     */
     function unstake(uint256 lockPeriod) external nonReentrant whenNotPaused {
         require(
             lockPeriod == THIRTY_DAYS ||
@@ -107,7 +137,10 @@ contract MockTokenStaking is
         emit Unstaked(msg.sender, stakeInfo.amount, lockPeriod);
     }
 
-    // Emergency function to withdraw tokens (only owner)
+    /**
+     * @dev Allows the owner to withdraw tokens from the contract in an emergency.
+     * @param amount The amount of tokens to withdraw.
+     */
     function emergencyWithdraw(uint256 amount) external onlyOwner {
         require(
             amount <= stakingToken.balanceOf(address(this)),
@@ -116,31 +149,70 @@ contract MockTokenStaking is
         stakingToken.transfer(owner(), amount);
     }
 
-    // Function to set the controller
-    function setController(address _controller) external onlyOwner {
-        controller = _controller;
+    /**
+     * @dev Sets the backend signer address.
+     * @param _backendSigner The address of the new backend signer.
+     */
+    function setBackendSigner(address _backendSigner) external onlyOwner {
+        backendSigner = _backendSigner;
     }
 
-    // Function for the controller to transfer tokens
-    function transferTokens(
-        address to,
-        uint256 amount
-    ) external onlyController {
+    /**
+     * @dev Allows users to claim tokens using a signed message from the backend signer.
+     * @param amount The amount of tokens to claim.
+     * @param nonce The nonce for the claim to prevent replay attacks.
+     * @param signature The signature from the backend signer.
+     */
+    function claim(
+        uint256 amount,
+        uint256 nonce,
+        bytes calldata signature
+    ) external {
+        require(nonce == nonces[msg.sender], "Invalid nonce");
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(
+                msg.sender,
+                amount,
+                nonce,
+                address(this),
+                block.chainid
+            )
+        );
+
+        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
+        address signer = ethSignedMessageHash.recover(signature);
+        require(signer == backendSigner, "Invalid signature");
         require(
             amount <= stakingToken.balanceOf(address(this)),
             "Insufficient balance"
         );
-        stakingToken.transfer(to, amount);
+        nonces[msg.sender] += 1;
+        stakingToken.transfer(msg.sender, amount);
     }
 
+    /**
+     * @dev Pauses the contract, preventing staking and unstaking.
+     */
     function pause() external onlyOwner {
         _pause();
     }
 
+    /**
+     * @dev Unpauses the contract, allowing staking and unstaking.
+     */
     function unpause() external onlyOwner {
         _unpause();
     }
 
+    /**
+     * @dev Returns the stake information for a user and lock period.
+     * @param user The address of the user.
+     * @param lockPeriod The lock period of the stake.
+     * @return amount The amount staked.
+     * @return startTime The start time of the stake.
+     * @return isActive Whether the stake is active.
+     * @return timeUntilUnlock The time remaining until the stake can be unlocked.
+     */
     function getStakeInfo(
         address user,
         uint256 lockPeriod
@@ -173,6 +245,14 @@ contract MockTokenStaking is
         }
     }
 
+    /**
+     * @dev Returns all stakes for a user.
+     * @param user The address of the user.
+     * @return amounts The amounts staked for each lock period.
+     * @return startTimes The start times for each lock period.
+     * @return isActives Whether each stake is active.
+     * @return timeUntilUnlocks The time remaining until each stake can be unlocked.
+     */
     function getAllStakes(
         address user
     )

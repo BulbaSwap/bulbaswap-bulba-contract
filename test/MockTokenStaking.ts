@@ -23,7 +23,7 @@ describe("MockTokenStaking (Proxy)", function () {
 
     // Deploy Staking contract through proxy
     const MockTokenStakingFactory = await ethers.getContractFactory("MockTokenStaking");
-    stakingProxy = await upgrades.deployProxy(MockTokenStakingFactory, [await mockToken.getAddress()]) as MockTokenStaking;
+    stakingProxy = await upgrades.deployProxy(MockTokenStakingFactory, [await mockToken.getAddress(), owner.address, owner.address]) as MockTokenStaking;
     await stakingProxy.waitForDeployment();
 
     // Transfer tokens and approve
@@ -42,7 +42,7 @@ describe("MockTokenStaking (Proxy)", function () {
 
     it("Should not allow reinitialization", async function () {
       await expect(
-        stakingProxy.initialize(await mockToken.getAddress())
+        stakingProxy.initialize(await mockToken.getAddress(), owner.address, owner.address)
       ).to.be.reverted;
     });
   });
@@ -121,37 +121,64 @@ describe("MockTokenStaking (Proxy)", function () {
     });
   });
 
-  describe("Controller Functions", function () {
-    beforeEach(async function () {
-      await stakingProxy.connect(owner).setController(addr1.address);
+  describe("Claim Functionality", function () {
+    it("Should allow users to claim tokens with a valid signature", async function () {
+      const claimAmount = ethers.parseEther("500");
+      const nonce = await stakingProxy.nonces(addr1.address);
+
+      // Construct the message hash
+      const messageHash = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount, nonce, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+
+      const signature = await owner.signMessage(ethers.getBytes(messageHash));
+
+      // Simulate staking to have balance in contract
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, await stakingProxy.THIRTY_DAYS());
+      const preBalance = await mockToken.balanceOf(addr1.address);
+
+      // Claim tokens
+      await stakingProxy.connect(addr1).claim(claimAmount, nonce, signature);
+
+      // Verify balance
+      const finalBalance = await mockToken.balanceOf(addr1.address);
+      expect(finalBalance).to.equal(preBalance + claimAmount);
+
+      // Verify nonce increment
+      const newNonce = await stakingProxy.nonces(addr1.address);
+      expect(newNonce).to.equal(nonce + BigInt(1));
     });
 
-    it("Should allow owner to set the controller", async function () {
-      expect(await stakingProxy.controller()).to.equal(addr1.address);
-    });
+    it("Should not allow claiming with an invalid signature", async function () {
+      const claimAmount = ethers.parseEther("500");
+      const nonce = await stakingProxy.nonces(addr1.address);
 
-    it("Should allow controller to transfer tokens", async function () {
-      const initialBalance = await mockToken.balanceOf(addr2.address);
-      const transferAmount = ethers.parseEther("100");
-
-      // Transfer tokens to the contract for testing
-      await mockToken.transfer(await stakingProxy.getAddress(), transferAmount);
-
-      await stakingProxy.connect(addr1).transferTokens(addr2.address, transferAmount);
-
-      const finalBalance = await mockToken.balanceOf(addr2.address);
-      expect(finalBalance - initialBalance).to.equal(transferAmount);
-    });
-
-    it("Should not allow non-controller to transfer tokens", async function () {
-      const transferAmount = ethers.parseEther("100");
-
-      // Transfer tokens to the contract for testing
-      await mockToken.transfer(await stakingProxy.getAddress(), transferAmount);
+      // Construct the message hash
+      const messageHash = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount, nonce, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+      const invalidSignature = await addr1.signMessage(ethers.getBytes(messageHash));
 
       await expect(
-        stakingProxy.connect(addr2).transferTokens(addr2.address, transferAmount)
-      ).to.be.revertedWith("Caller is not the controller");
+        stakingProxy.connect(addr1).claim(claimAmount, nonce, invalidSignature)
+      ).to.be.revertedWith("Invalid signature");
+    });
+
+    it("Should not allow claiming with an invalid nonce", async function () {
+      const claimAmount = ethers.parseEther("500");
+      const invalidNonce = 999; // Arbitrary invalid nonce
+      const messageHash = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount, invalidNonce, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+      
+      const signature = await owner.signMessage(ethers.getBytes(messageHash));
+
+      await expect(
+        stakingProxy.connect(addr1).claim(claimAmount, invalidNonce, signature)
+      ).to.be.revertedWith("Invalid nonce");
     });
   });
 
@@ -243,39 +270,6 @@ describe("MockTokenStaking (Proxy)", function () {
       const stakeInfo = await stakingProxy.getStakeInfo(addr1.address, lockPeriod);
       expect(stakeInfo.amount).to.equal(0);
       expect(stakeInfo.isActive).to.be.false;
-    });
-  });
-
-  describe("Insufficient Balance Handling", function () {
-    it("Should not allow unstaking when contract balance is insufficient", async function () {
-      const lockPeriod = await stakingProxy.THIRTY_DAYS();
-      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, lockPeriod);
-
-      // Simulate insufficient balance by transferring tokens out
-      await stakingProxy.connect(owner).setController(owner.address);
-      await stakingProxy.transferTokens(owner.address, STAKE_AMOUNT);
-
-      // Advance time to allow unstaking
-      await time.increase(31 * 24 * 60 * 60); // Advance 31 days
-
-      // Attempt to unstake
-      await expect(
-        stakingProxy.connect(addr1).unstake(lockPeriod)
-      ).to.be.revertedWith("Insufficient contract balance");
-    });
-
-    it("Should not allow controller to transfer tokens when contract balance is insufficient", async function () {
-      await stakingProxy.connect(owner).setController(addr1.address);
-
-      // Simulate insufficient balance by transferring tokens out
-      await mockToken.transfer(owner.address, STAKE_AMOUNT);
-
-      const transferAmount = ethers.parseEther("100");
-
-      // Attempt to transfer tokens
-      await expect(
-        stakingProxy.connect(addr1).transferTokens(addr2.address, transferAmount)
-      ).to.be.revertedWith("Insufficient balance");
     });
   });
 }); 
