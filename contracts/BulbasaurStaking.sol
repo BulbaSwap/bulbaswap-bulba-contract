@@ -31,6 +31,13 @@ contract BulbasaurStaking is
         bool isActive; // Whether the stake is active
     }
 
+    // Define a struct to track vesting schedules
+    struct VestingSchedule {
+        uint256 originalTotalAmount; // Original total amount to be vested
+        uint256 remainingAmount; // Remaining amount to be vested
+        uint256 startTime; // Start time of the vesting schedule
+    }
+
     address public backendSigner; // Address of the backend signer for secure claims
 
     // Mapping from address to lock period to stake info
@@ -38,6 +45,10 @@ contract BulbasaurStaking is
         public stakes;
 
     mapping(address user => uint256 nonce) public nonces; // Nonce for each user to prevent replay attacks
+
+    // Mapping to track vesting schedules for each user
+    mapping(address user => VestingSchedule vestingSchedule)
+        public vestingSchedules;
 
     event Staked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Unstaked(address indexed user, uint256 amount, uint256 lockPeriod);
@@ -186,9 +197,33 @@ contract BulbasaurStaking is
             amount <= stakingToken.balanceOf(address(this)),
             "Insufficient balance"
         );
+
+        // Calculate the immediate and vested amounts
+        uint256 immediateAmount = (amount * 20) / 100;
+        uint256 vestedAmount = amount - immediateAmount;
+
+        // Update the vesting schedule for the user
+        VestingSchedule storage schedule = vestingSchedules[msg.sender];
+        schedule.remainingAmount += vestedAmount;
+        schedule.originalTotalAmount = schedule.remainingAmount;
+        schedule.startTime = block.timestamp;
+
         nonces[msg.sender] += 1;
-        stakingToken.transfer(msg.sender, amount);
+        // Transfer the immediate amount to the user
+        stakingToken.transfer(msg.sender, immediateAmount);
+
         emit Claimed(msg.sender, amount, nonce);
+    }
+
+    // Function to claim vested tokens
+    function claimVestedTokens() external {
+        uint256 vestedAmount = getVestedAmount(msg.sender);
+        require(vestedAmount > 0, "No vested tokens available");
+
+        VestingSchedule storage schedule = vestingSchedules[msg.sender];
+        schedule.remainingAmount -= vestedAmount;
+
+        stakingToken.transfer(msg.sender, vestedAmount);
     }
 
     /**
@@ -284,6 +319,25 @@ contract BulbasaurStaking is
                     block.timestamp;
             }
         }
+    }
+
+    // Function to get the vested amount for a user
+    function getVestedAmount(address user) public view returns (uint256) {
+        VestingSchedule storage schedule = vestingSchedules[user];
+        if (schedule.remainingAmount == 0) {
+            return 0;
+        }
+
+        uint256 elapsedTime = block.timestamp - schedule.startTime;
+        if (elapsedTime > NINETY_DAYS) {
+            return schedule.originalTotalAmount;
+        }
+        uint256 totalVested = (schedule.originalTotalAmount * elapsedTime) /
+            NINETY_DAYS;
+        uint256 alreadyReleased = schedule.originalTotalAmount -
+            schedule.remainingAmount;
+
+        return totalVested - alreadyReleased;
     }
 
     // Gap for future upgrades

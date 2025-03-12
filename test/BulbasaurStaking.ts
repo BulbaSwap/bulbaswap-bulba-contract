@@ -122,7 +122,7 @@ describe("BulbasaurStaking (Proxy)", function () {
   });
 
   describe("Claim Functionality", function () {
-    it("Should allow users to claim tokens with a valid signature", async function () {
+    it("Should allow users to claim tokens with a valid signature and vest the remaining amount", async function () {
       const claimAmount = ethers.parseEther("500");
       const nonce = await stakingProxy.nonces(addr1.address);
 
@@ -141,13 +141,48 @@ describe("BulbasaurStaking (Proxy)", function () {
       // Claim tokens
       await stakingProxy.connect(addr1).claim(claimAmount, nonce, signature);
 
-      // Verify balance
+      // Verify immediate balance
+      const immediateAmount = claimAmount * 20n / 100n;
       const finalBalance = await mockToken.balanceOf(addr1.address);
-      expect(finalBalance).to.equal(preBalance + claimAmount);
+      expect(finalBalance).to.equal(preBalance + immediateAmount);
+
+      // Verify vesting schedule
+      const vestingSchedule = await stakingProxy.vestingSchedules(addr1.address);
+      const vestedAmount = claimAmount - immediateAmount;
+      expect(vestingSchedule.remainingAmount).to.equal(vestedAmount);
 
       // Verify nonce increment
       const newNonce = await stakingProxy.nonces(addr1.address);
-      expect(newNonce).to.equal(nonce + BigInt(1));
+      expect(newNonce).to.equal(nonce + 1n);
+    });
+
+    it("Should allow users to claim vested tokens after the vesting period", async function () {
+      const claimAmount = ethers.parseEther("500");
+      const nonce = await stakingProxy.nonces(addr1.address);
+
+      // Construct the message hash
+      const messageHash = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount, nonce, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+
+      const signature = await owner.signMessage(ethers.getBytes(messageHash));
+
+      // Simulate staking to have balance in contract
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, await stakingProxy.THIRTY_DAYS());
+      await stakingProxy.connect(addr1).claim(claimAmount, nonce, signature);
+
+      // Advance time to allow vesting
+      await time.increase(90 * 24 * 60 * 60); // Advance 90 days
+
+      // Claim vested tokens
+      const preBalance = await mockToken.balanceOf(addr1.address);
+      await stakingProxy.connect(addr1).claimVestedTokens();
+      const finalBalance = await mockToken.balanceOf(addr1.address);
+
+      // Verify that the full vested amount is claimed
+      const vestedAmount = claimAmount * 80n / 100n;
+      expect(finalBalance).to.equal(preBalance + vestedAmount);
     });
 
     it("Should not allow claiming with an invalid signature", async function () {
