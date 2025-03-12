@@ -53,7 +53,13 @@ contract BulbasaurStaking is
     event Staked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Unstaked(address indexed user, uint256 amount, uint256 lockPeriod);
     event Initialized(address stakingToken);
-    event Claimed(address indexed user, uint256 amount, uint256 nonce);
+    event Claimed(
+        address indexed user,
+        uint256 amount,
+        uint256 nonce,
+        uint256 remainingAmount
+    );
+    event VestedTokensClaimed(address indexed user, uint256 amount);
 
     // Modifier to restrict access to the backend signer
     modifier onlyBackendSigner() {
@@ -212,7 +218,7 @@ contract BulbasaurStaking is
         // Transfer the immediate amount to the user
         stakingToken.transfer(msg.sender, immediateAmount);
 
-        emit Claimed(msg.sender, amount, nonce);
+        emit Claimed(msg.sender, amount, nonce, schedule.remainingAmount);
     }
 
     // Function to claim vested tokens
@@ -224,6 +230,8 @@ contract BulbasaurStaking is
         schedule.remainingAmount -= vestedAmount;
 
         stakingToken.transfer(msg.sender, vestedAmount);
+        // Emit the event
+        emit VestedTokensClaimed(msg.sender, vestedAmount);
     }
 
     /**
