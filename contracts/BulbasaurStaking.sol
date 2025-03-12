@@ -9,6 +9,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
+/**
+ * @title BulbasaurStaking
+ */
 contract BulbasaurStaking is
     Initializable,
     OwnableUpgradeable,
@@ -50,15 +53,47 @@ contract BulbasaurStaking is
     mapping(address user => VestingSchedule vestingSchedule)
         public vestingSchedules;
 
+    /**
+     * @dev Emitted when a user stakes tokens.
+     * @param user The address of the user who staked tokens.
+     * @param amount The amount of tokens staked.
+     * @param lockPeriod The lock period for the stake.
+     */
     event Staked(address indexed user, uint256 amount, uint256 lockPeriod);
+
+    /**
+     * @dev Emitted when a user unstakes tokens.
+     * @param user The address of the user who unstaked tokens.
+     * @param amount The amount of tokens unstaked.
+     * @param lockPeriod The lock period for the stake.
+     */
     event Unstaked(address indexed user, uint256 amount, uint256 lockPeriod);
+
+    /**
+     * @dev Emitted when the contract is initialized.
+     * @param stakingToken The address of the staking token.
+     */
     event Initialized(address stakingToken);
+
+    /**
+     * @dev Emitted when a user claims tokens.
+     * @param user The address of the user who claimed tokens.
+     * @param amount The total amount of tokens claimed.
+     * @param nonce The nonce used for the claim.
+     * @param remainingAmount The remaining vested amount.
+     */
     event Claimed(
         address indexed user,
         uint256 amount,
         uint256 nonce,
         uint256 remainingAmount
     );
+
+    /**
+     * @dev Emitted when a user claims vested tokens.
+     * @param user The address of the user who claimed vested tokens.
+     * @param amount The amount of vested tokens claimed.
+     */
     event VestedTokensClaimed(address indexed user, uint256 amount);
 
     // Modifier to restrict access to the backend signer
@@ -155,26 +190,6 @@ contract BulbasaurStaking is
     }
 
     /**
-     * @dev Allows the owner to withdraw tokens from the contract in an emergency.
-     * @param amount The amount of tokens to withdraw.
-     */
-    function emergencyWithdraw(uint256 amount) external onlyOwner {
-        require(
-            amount <= stakingToken.balanceOf(address(this)),
-            "Insufficient balance"
-        );
-        stakingToken.transfer(owner(), amount);
-    }
-
-    /**
-     * @dev Sets the backend signer address.
-     * @param _backendSigner The address of the new backend signer.
-     */
-    function setBackendSigner(address _backendSigner) external onlyOwner {
-        backendSigner = _backendSigner;
-    }
-
-    /**
      * @dev Allows users to claim tokens using a signed message from the backend signer.
      * @param amount The amount of tokens to claim.
      * @param nonce The nonce for the claim to prevent replay attacks.
@@ -184,7 +199,7 @@ contract BulbasaurStaking is
         uint256 amount,
         uint256 nonce,
         bytes calldata signature
-    ) external {
+    ) external nonReentrant whenNotPaused {
         require(nonce == nonces[msg.sender], "Invalid nonce");
         bytes32 messageHash = keccak256(
             abi.encodePacked(
@@ -221,8 +236,10 @@ contract BulbasaurStaking is
         emit Claimed(msg.sender, amount, nonce, schedule.remainingAmount);
     }
 
-    // Function to claim vested tokens
-    function claimVestedTokens() external {
+    /**
+     * @dev Allows users to claim their vested tokens.
+     */
+    function claimVestedTokens() external nonReentrant whenNotPaused {
         uint256 vestedAmount = getVestedAmount(msg.sender);
         require(vestedAmount > 0, "No vested tokens available");
 
@@ -246,6 +263,26 @@ contract BulbasaurStaking is
      */
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    /**
+     * @dev Allows the owner to withdraw tokens from the contract in an emergency.
+     * @param amount The amount of tokens to withdraw.
+     */
+    function emergencyWithdraw(uint256 amount) external onlyOwner {
+        require(
+            amount <= stakingToken.balanceOf(address(this)),
+            "Insufficient balance"
+        );
+        stakingToken.transfer(owner(), amount);
+    }
+
+    /**
+     * @dev Sets the backend signer address.
+     * @param _backendSigner The address of the new backend signer.
+     */
+    function setBackendSigner(address _backendSigner) external onlyOwner {
+        backendSigner = _backendSigner;
     }
 
     /**
@@ -329,7 +366,11 @@ contract BulbasaurStaking is
         }
     }
 
-    // Function to get the vested amount for a user
+    /**
+     * @dev Returns the vested amount for a user.
+     * @param user The address of the user.
+     * @return The amount of vested tokens available for the user.
+     */
     function getVestedAmount(address user) public view returns (uint256) {
         VestingSchedule storage schedule = vestingSchedules[user];
         if (schedule.remainingAmount == 0) {
