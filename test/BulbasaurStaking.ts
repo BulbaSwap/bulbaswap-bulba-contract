@@ -208,12 +208,170 @@ describe("BulbasaurStaking (Proxy)", function () {
         ["address", "uint256", "uint256", "address", "uint256"],
         [addr1.address, claimAmount, invalidNonce, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
       );
-      
+
       const signature = await owner.signMessage(ethers.getBytes(messageHash));
 
       await expect(
         stakingProxy.connect(addr1).claim(claimAmount, invalidNonce, signature)
       ).to.be.revertedWith("Invalid nonce");
+    });
+
+    it("Should correctly update vesting schedule and balances when claim is called multiple times", async function () {
+      const claimAmount1 = ethers.parseEther("500");
+      const claimAmount2 = ethers.parseEther("300");
+      const nonce1 = await stakingProxy.nonces(addr1.address);
+
+      // Construct the message hash for the first claim
+      const messageHash1 = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount1, nonce1, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+
+      const signature1 = await owner.signMessage(ethers.getBytes(messageHash1));
+
+      // Simulate staking to have balance in contract
+      await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, await stakingProxy.THIRTY_DAYS());
+      const preBalance = await mockToken.balanceOf(addr1.address);
+
+      // First claim
+      await stakingProxy.connect(addr1).claim(claimAmount1, nonce1, signature1);
+
+      // Verify immediate balance after first claim
+      const immediateAmount1 = claimAmount1 * 20n / 100n;
+      let finalBalance = await mockToken.balanceOf(addr1.address);
+      expect(finalBalance).to.equal(preBalance + immediateAmount1);
+
+      // Verify vesting schedule after first claim
+      let vestingSchedule = await stakingProxy.vestingSchedules(addr1.address);
+      let vestedAmount1 = claimAmount1 - immediateAmount1;
+      expect(vestingSchedule.remainingAmount).to.equal(vestedAmount1);
+
+      // Second claim
+      const nonce2 = await stakingProxy.nonces(addr1.address);
+      const messageHash2 = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount2, nonce2, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+
+      const signature2 = await owner.signMessage(ethers.getBytes(messageHash2));
+      await stakingProxy.connect(addr1).claim(claimAmount2, nonce2, signature2);
+
+      // Verify immediate balance after second claim
+      const immediateAmount2 = claimAmount2 * 20n / 100n;
+      finalBalance = await mockToken.balanceOf(addr1.address);
+      expect(finalBalance).to.equal(preBalance + immediateAmount1 + immediateAmount2);
+
+      // Verify vesting schedule after second claim
+      const vestedAmount2 = claimAmount2 - immediateAmount2;
+      vestingSchedule = await stakingProxy.vestingSchedules(addr1.address);
+      expect(vestingSchedule.remainingAmount).to.equal(vestedAmount1 + vestedAmount2);
+    });
+
+    it("Should correctly handle multiple calls to claimVestedTokens", async function () {
+      const claimAmount = ethers.parseEther("500");
+      const nonce = await stakingProxy.nonces(addr1.address);
+
+      // Construct the message hash
+      const messageHash = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount, nonce, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+
+      const signature = await owner.signMessage(ethers.getBytes(messageHash));
+
+      // Simulate staking to have balance in contract
+      // await stakingProxy.connect(addr1).stake(STAKE_AMOUNT, await stakingProxy.NINETY_DAYS());
+      await mockToken.mint(await stakingProxy.getAddress(), STAKE_AMOUNT);
+      let preBalance = await mockToken.balanceOf(addr1.address);
+      await stakingProxy.connect(addr1).claim(claimAmount, nonce, signature);
+      let immediateAmount = claimAmount * 20n / 100n;
+      expect(await mockToken.balanceOf(addr1.address)).to.equal(preBalance + immediateAmount);
+
+      // Advance time to allow partial vesting
+      await time.increase(45 * 24 * 60 * 60); // Advance 45 days
+
+      const vestingSchedule = await stakingProxy.vestingSchedules(addr1.address);
+      const claimStartTime = vestingSchedule.startTime;
+      const currentBlock = await ethers.provider.getBlock("latest");
+      const currentTime = currentBlock?.timestamp ?? 0;
+      // Stop block.time at this time
+      const elapsedTime = BigInt(currentTime) - BigInt(claimStartTime) + BigInt(1);
+      const totalVestedAmount = (claimAmount - immediateAmount) * BigInt(elapsedTime) / BigInt(await stakingProxy.NINETY_DAYS());
+      // First claim of vested tokens
+      preBalance = await mockToken.balanceOf(addr1.address);
+      await stakingProxy.connect(addr1).claimVestedTokens();
+      let finalBalance = await mockToken.balanceOf(addr1.address);
+      // Verify that half of the vested amount is claimed
+      expect(finalBalance).to.equal(preBalance + totalVestedAmount);
+
+      // Advance time to allow full vesting
+      await time.increase(45 * 24 * 60 * 60); // Advance another 45 days
+
+      // Second claim of vested tokens
+      preBalance = await mockToken.balanceOf(addr1.address);
+      const remainingAmount = await stakingProxy.getVestedAmount(addr1.address);
+      await stakingProxy.connect(addr1).claimVestedTokens();
+      finalBalance = await mockToken.balanceOf(addr1.address);
+
+      // Verify that the remaining vested amount is claimed
+      expect(finalBalance).to.equal(preBalance + remainingAmount);
+      expect(finalBalance).to.equal(ethers.parseEther("10000") + claimAmount);
+    });
+
+    it("Should correctly update vesting schedule and balances when claim and claimVestedTokens are called multiple times", async function () {
+      const claimAmount1 = ethers.parseEther("500");
+      const claimAmount2 = ethers.parseEther("300");
+      const nonce1 = await stakingProxy.nonces(addr1.address);
+
+      // Construct the message hash for the first claim
+      const messageHash1 = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount1, nonce1, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+
+      const signature1 = await owner.signMessage(ethers.getBytes(messageHash1));
+
+      // Simulate staking to have balance in contract
+      await mockToken.mint(await stakingProxy.getAddress(), claimAmount1 + claimAmount2);
+      const preBalance = await mockToken.balanceOf(addr1.address);
+
+      // First claim
+      await stakingProxy.connect(addr1).claim(claimAmount1, nonce1, signature1);
+      // Check balance after first claim
+      const balanceAfterClaim = await mockToken.balanceOf(addr1.address);
+      const immediateAmount = claimAmount1 * 20n / 100n;
+      expect(balanceAfterClaim).to.equal(preBalance + immediateAmount);
+
+      // Advance time to allow partial vesting
+      await time.increase(45 * 24 * 60 * 60); // Advance 45 days
+
+      // Claim vested tokens
+      await stakingProxy.connect(addr1).claimVestedTokens();
+      // Second claim
+      const nonce2 = await stakingProxy.nonces(addr1.address);
+      const messageHash2 = ethers.solidityPackedKeccak256(
+        ["address", "uint256", "uint256", "address", "uint256"],
+        [addr1.address, claimAmount2, nonce2, await stakingProxy.getAddress(), (await ethers.provider.getNetwork()).chainId]
+      );
+
+      const signature2 = await owner.signMessage(ethers.getBytes(messageHash2));
+      await stakingProxy.connect(addr1).claim(claimAmount2, nonce2, signature2);
+
+      // Advance time to allow partial vesting
+      await time.increase(45 * 24 * 60 * 60); // Advance another 45 days
+
+      // Claim remaining vested tokens
+      await stakingProxy.connect(addr1).claimVestedTokens();
+
+      // Advance time to allow total vesting
+      await time.increase(45 * 24 * 60 * 60); // Advance another 45 days
+
+      // Claim remaining vested tokens
+      await stakingProxy.connect(addr1).claimVestedTokens();
+
+      // Verify final balance
+      const finalBalance = await mockToken.balanceOf(addr1.address);
+      expect(finalBalance).to.equal(ethers.parseEther("10000") + claimAmount2 + claimAmount1);
     });
   });
 

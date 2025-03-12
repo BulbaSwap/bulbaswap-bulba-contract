@@ -329,8 +329,8 @@ contract BulbasaurStaking is
         }
 
         uint256 elapsedTime = block.timestamp - schedule.startTime;
-        if (elapsedTime > NINETY_DAYS) {
-            return schedule.originalTotalAmount;
+        if (elapsedTime >= NINETY_DAYS) {
+            return schedule.remainingAmount;
         }
         uint256 totalVested = (schedule.originalTotalAmount * elapsedTime) /
             NINETY_DAYS;
