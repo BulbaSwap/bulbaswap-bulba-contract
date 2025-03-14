@@ -1,9 +1,10 @@
 import { ethers } from "hardhat";
-import { TransparentUpgradeableProxy__factory, ProxyAdmin__factory } from "@openzeppelin/contracts";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
+  const ProxyAdmin__factory = await ethers.getContractFactory("ProxyAdmin");
+  const TransparentUpgradeableProxy__factory = await ethers.getContractFactory("TransparentUpgradeableProxy");
 
   // Deploy MockToken first
   const MockToken = await ethers.getContractFactory("MockToken");
@@ -18,19 +19,19 @@ async function main() {
   console.log("Staking Implementation deployed to:", await stakingImplementation.getAddress());
 
   // Deploy ProxyAdmin
-  const ProxyAdmin = new ProxyAdmin__factory(deployer);
-  const proxyAdmin = await ProxyAdmin.deploy();
+  const proxyAdmin = await ProxyAdmin__factory.deploy(deployer);
   await proxyAdmin.waitForDeployment();
   console.log("ProxyAdmin deployed to:", await proxyAdmin.getAddress());
 
   // Prepare initialization data
   const initData = BulbaStaking.interface.encodeFunctionData("initialize", [
-    await mockToken.getAddress()
+    await mockToken.getAddress(),
+    await deployer.getAddress(),
+    await deployer.getAddress()
   ]);
 
   // Deploy TransparentUpgradeableProxy
-  const TransparentUpgradeableProxy = new TransparentUpgradeableProxy__factory(deployer);
-  const proxy = await TransparentUpgradeableProxy.deploy(
+  const proxy = await TransparentUpgradeableProxy__factory.deploy(
     await stakingImplementation.getAddress(),
     await proxyAdmin.getAddress(),
     initData
