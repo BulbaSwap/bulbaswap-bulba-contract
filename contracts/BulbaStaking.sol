@@ -10,9 +10,9 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
- * @title BulbasaurStaking
+ * @title BulbaStaking
  */
-contract BulbasaurStaking is
+contract BulbaStaking is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,

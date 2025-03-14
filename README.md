@@ -1,4 +1,4 @@
-# Bulbaswap Bulbasaur Contract
+# Bulbaswap Bulba Contract
 
 This repository contains the smart contracts for the Bulbaswap ecosystem.
 
@@ -12,8 +12,8 @@ This repository contains the smart contracts for the Bulbaswap ecosystem.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/BulbaSwap/bulbaswap-bulbasaur-contract.git
-   cd bulbaswap-bulbasaur-contract
+   git clone https://github.com/BulbaSwap/bulbaswap-bulba-contract.git
+   cd bulbaswap-bulba-contract
    ```
 
 2. Install the dependencies:
