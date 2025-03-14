@@ -1,5 +1,5 @@
 {
-  "name": "bulbaswap-bulbasaur-contract",
+  "name": "bulbaswap-bulba-contract",
   "version": "1.0.0",
   "description": "This is a blockchain-based smart contract project specifically developed for the Bulbaswap ecosystem.",
   "main": "index.js",
