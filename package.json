@@ -4,7 +4,15 @@
   "description": "This is a blockchain-based smart contract project specifically developed for the Bulbaswap ecosystem.",
   "main": "index.js",
   "scripts": {
-    "test": ""
+    "test": "npx hardhat test",
+    "test:holesky": "npx hardhat test --network morphHolesky",
+    "test:morph": "npx hardhat test --network morph",
+    "deploy:holesky": "hardhat run scripts/deploy-bulba-staking.ts --network morphHolesky",
+    "deploy:morph": "hardhat run scripts/deploy-bulba-staking.ts --network morph",
+    "verify:holesky": "hardhat verify --network morphHolesky $npm_config_address",
+    "verify:morph": "hardhat verify --network morph $npm_config_address",
+    "verify:all:holesky": "hardhat run scripts/verify.ts --network morphHolesky",
+    "verify:all:morph": "hardhat run scripts/verify.ts --network morph"
   },
   "keywords": [],
   "author": "",
@@ -27,9 +35,10 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.13.10",
     "chai": "^4.5.0",
+    "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
     "hardhat": "^2.22.19",
-    "hardhat-gas-reporter": "^1.0.10",
+    "hardhat-gas-reporter": "^2.2.2",
     "solidity-coverage": "^0.8.14",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",

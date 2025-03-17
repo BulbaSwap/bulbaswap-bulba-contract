@@ -8,7 +8,7 @@ async function main() {
 
   // Deploy MockToken first
   const MockToken = await ethers.getContractFactory("MockToken");
-  const mockToken = await MockToken.deploy("Mock Token", "MTK", ethers.parseEther("1000000"));
+  const mockToken = await MockToken.deploy("Bulba Token", "Bulba", ethers.parseEther("1000000000"));
   await mockToken.waitForDeployment();
   console.log("MockToken deployed to:", await mockToken.getAddress());
 
@@ -50,9 +50,9 @@ async function main() {
     await stakingImplementation.deploymentTransaction()?.wait(5);
     await proxyAdmin.deploymentTransaction()?.wait(5);
     await proxy.deploymentTransaction()?.wait(5);
-    
+
     const { run } = require("hardhat");
-    
+
     // Verify implementation
     await run("verify:verify", {
       address: await stakingImplementation.getAddress(),
@@ -78,10 +78,10 @@ async function main() {
 
   console.log("\nDeployment Summary:");
   console.log("-------------------");
-  console.log("MockToken:", await mockToken.getAddress());
-  console.log("Implementation:", await stakingImplementation.getAddress());
-  console.log("ProxyAdmin:", await proxyAdmin.getAddress());
-  console.log("Proxy:", await proxy.getAddress());
+  console.log("MockToken: ", await mockToken.getAddress());
+  console.log("Implementation: ", await stakingImplementation.getAddress());
+  console.log("ProxyAdmin: ", await proxyAdmin.getAddress());
+  console.log("Proxy: ", await proxy.getAddress());
   console.log("\nTo interact with the contract, use the proxy address with the BulbaStaking ABI");
 }
 
@@ -90,4 +90,4 @@ main()
   .catch((error) => {
     console.error(error);
     process.exit(1);
-  }); 
+  });

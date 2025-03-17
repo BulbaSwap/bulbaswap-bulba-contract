@@ -1,64 +1,94 @@
-import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatUserConfig } from "hardhat/config";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-ignition";
+import "@nomicfoundation/hardhat-ignition-ethers";
+import "@nomicfoundation/hardhat-network-helpers";
+import "@nomicfoundation/hardhat-verify";
+import "@typechain/hardhat";
+import "hardhat-gas-reporter";
+import "solidity-coverage";
 import "@openzeppelin/hardhat-upgrades";
-
-// Task to deploy MockToken with custom parameters
-task("deploy-mock-token", "Deploys the MockToken contract")
-  .addParam("name", "Token name", "Mock Token", undefined, true) // Optional parameter with default value
-  .addParam("symbol", "Token symbol", "MTK", undefined, true) // Optional parameter with default value
-  .addParam("supply", "Initial supply (in ether units)", "1000000", undefined, true) // Optional parameter with default value
-  .setAction(async (taskArgs, hre) => {
-    const { name, symbol, supply } = taskArgs;
-    
-    console.log("Deploying MockToken with parameters:");
-    console.log(`Name: ${name}`);
-    console.log(`Symbol: ${symbol}`);
-    console.log(`Initial Supply: ${supply} tokens`);
-
-    const MockToken = await hre.ethers.getContractFactory("MockToken");
-    const mockToken = await MockToken.deploy(
-      name,
-      symbol,
-      hre.ethers.parseEther(supply)
-    );
-
-    await mockToken.waitForDeployment();
-    const address = await mockToken.getAddress();
-
-    console.log(`MockToken deployed to: ${address}`);
-    
-    // Verify the contract on Etherscan if not on a local network
-    const network = await hre.ethers.provider.getNetwork();
-    if (network.chainId !== 31337n && network.chainId !== 1337n) {
-      console.log("Waiting for block confirmations...");
-      await mockToken.deploymentTransaction()?.wait(5);
-      
-      await hre.run("verify:verify", {
-        address: address,
-        constructorArguments: [name, symbol, hre.ethers.parseEther(supply)],
-      });
-    }
-  });
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.22",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    }
+    compilers: [
+      {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1000,
+          },
+          viaIR: true,
+        },
+      },
+    ],
+  },
+  paths: {
+    tests: "./test",
+    sources: "./contracts",
   },
   networks: {
     hardhat: {
+      allowUnlimitedContractSize: true,
     },
-    // Add other network configurations here
+    morph: {
+      url: "https://rpc.morphl2.io",
+      accounts: [
+        process.env.PRIVATE_KEY || "",
+        process.env.GLOBAL_SIGNER_PRIVATE_KEY || "",
+      ].filter((key) => key !== ""),
+      timeout: 60000,
+      gasPrice: "auto",
+    },
+    morphHolesky: {
+      url: "https://rpc-holesky.morphl2.io",
+      accounts: [
+        process.env.PRIVATE_KEY || "",
+        process.env.GLOBAL_SIGNER_PRIVATE_KEY || "",
+      ].filter((key) => key !== ""),
+      timeout: 60000,
+      gasPrice: "auto",
+    },
   },
-  // Add Etherscan API key for contract verification
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY
-  }
+    apiKey: {
+      morph: "no-api-key-required",
+      morphHolesky: "no-api-key-required",
+    },
+    customChains: [
+      {
+        network: "morph",
+        chainId: 2818,
+        urls: {
+          apiURL: "https://explorer-api.morphl2.io/api",
+          browserURL: "https://explorer.morphl2.io",
+        },
+      },
+      {
+        network: "morphHolesky",
+        chainId: 2810,
+        urls: {
+          apiURL: "https://explorer-api-holesky.morphl2.io/api",
+          browserURL: "https://explorer-holesky.morphl2.io",
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: false,
+  },
+  mocha: {
+    timeout: 100000,
+  },
+  gasReporter: {
+    enabled: true,
+  },
 };
 
 export default config;
