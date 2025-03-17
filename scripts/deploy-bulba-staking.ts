@@ -62,7 +62,9 @@ async function main() {
     // Verify ProxyAdmin
     await run("verify:verify", {
       address: await proxyAdmin.getAddress(),
-      constructorArguments: []
+      constructorArguments: [
+        await deployer.getAddress()
+      ]
     });
 
     // Verify Proxy
