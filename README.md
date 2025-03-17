@@ -1,42 +1,20 @@
-# Bulbaswap Bulba Contract
+# Sample Hardhat Project
 
-This repository contains the smart contracts for the Bulbaswap ecosystem.
+This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
 
-## Prerequisites
+Try running some of the following tasks:
 
-- Node.js (v16 or later)
-- npm or yarn
-- Hardhat
-
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/BulbaSwap/bulbaswap-bulba-contract.git
-   cd bulbaswap-bulba-contract
-   ```
-
-2. Install the dependencies:
-   ```bash
-   npm install
-   ```
-
-## Compiling Contracts
-
-To compile the smart contracts, run the following command:
-
-```bash
-npx hardhat compile
+```shell
+npx hardhat help
+npx hardhat test
+REPORT_GAS=true npx hardhat test
+npx hardhat node
+npx hardhat ignition deploy ./ignition/modules/Lock.ts
 ```
 
-Ensure that your `hardhat.config.ts` is set up correctly with the appropriate Solidity version and any necessary plugins.
-
-## Deploying Contracts
-
-To deploy the contracts, you can use the Hardhat scripts provided. For example, to deploy the `MockTokenStaking` contract, run:
-
-```bash
-npx hardhat run scripts/deploy-mock-token-staking.ts --network <network-name>
+Try deploy on Morph
+```shell
+npx hardhat ignition deploy ignition/modules/ProxyModule.ts --network morphHolesky --deployment-id morph-holesky-<index> --verify
+# y
+npx hardhat verify <proxy admin address> --network morphHolesky <owner address>
 ```
-
-Replace `<network-name>` with the desired network, such as `localhost`, `holesky`, or `mainnet`. Ensure that your Hardhat configuration includes the necessary network settings and that you have the appropriate credentials (e.g., private keys, Infura/Alchemy API keys) set up in your environment variables.

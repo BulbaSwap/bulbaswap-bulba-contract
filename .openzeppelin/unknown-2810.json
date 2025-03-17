@@ -1,0 +1,263 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x4599bff8bC1f144733361D54C4e69b4eF97c03C1",
+      "txHash": "0x6db1e1460ab69af5f08d6607f15aac4e005f5609ec83305cdc871eaf6a715ba2",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "9e987b0887cf29532f8374614b04b9bdbe1b245daa89a53c77b1d2aafa4619e5": {
+      "address": "0x080bF0d9f065411fa15d07e29ea4A10eE2895D0D",
+      "txHash": "0x5cff83571c0c4ad1968f44c7179c3da46bc7d8aa5e0512dcf176813e04010f73",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "stakingToken",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IERC20)2260",
+            "contract": "BulbaStaking",
+            "src": "contracts/BulbaStaking.sol:24"
+          },
+          {
+            "label": "backendSigner",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "BulbaStaking",
+            "src": "contracts/BulbaStaking.sol:44"
+          },
+          {
+            "label": "stakes",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(StakeInfo)7954_storage))",
+            "contract": "BulbaStaking",
+            "src": "contracts/BulbaStaking.sol:47"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BulbaStaking",
+            "src": "contracts/BulbaStaking.sol:50"
+          },
+          {
+            "label": "vestingSchedules",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_struct(VestingSchedule)7961_storage)",
+            "contract": "BulbaStaking",
+            "src": "contracts/BulbaStaking.sol:53"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "BulbaStaking",
+            "src": "contracts/BulbaStaking.sol:393"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)156_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)220_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_contract(IERC20)2260": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(StakeInfo)7954_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct BulbaStaking.StakeInfo))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(VestingSchedule)7961_storage)": {
+            "label": "mapping(address => struct BulbaStaking.VestingSchedule)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(StakeInfo)7954_storage)": {
+            "label": "mapping(uint256 => struct BulbaStaking.StakeInfo)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(StakeInfo)7954_storage": {
+            "label": "struct BulbaStaking.StakeInfo",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "isActive",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(VestingSchedule)7961_storage": {
+            "label": "struct BulbaStaking.VestingSchedule",
+            "members": [
+              {
+                "label": "originalTotalAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "remainingAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

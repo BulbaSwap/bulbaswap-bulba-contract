@@ -19,3 +19,4 @@ node_modules
 # Hardhat Ignition default folder for deployments against a local node
 package-lock.json
 yarn.lock
+ignition/deployments/chain-31337

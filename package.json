@@ -5,25 +5,19 @@
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test",
-    "test:holesky": "npx hardhat test --network morphHolesky",
-    "test:morph": "npx hardhat test --network morph",
-    "deploy:holesky": "hardhat run scripts/deploy-bulba-staking.ts --network morphHolesky",
-    "deploy:morph": "hardhat run scripts/deploy-bulba-staking.ts --network morph",
-    "verify:holesky": "hardhat verify --network morphHolesky $npm_config_address",
-    "verify:morph": "hardhat verify --network morph $npm_config_address",
-    "verify:all:holesky": "hardhat run scripts/verify.ts --network morphHolesky",
-    "verify:all:morph": "hardhat run scripts/verify.ts --network morph"
+    "deploy:holesky": "hardhat ignition deploy ignition/modules/ProxyModule.ts --network morphHolesky --deployment-id morph-holesky --verify",
+    "deploy:morph": "hardhat ignition deploy ignition/modules/ProxyModule.ts --network morph --deployment-id morph --verify",
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@nomicfoundation/hardhat-ignition": "^0.15.10",
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.10",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.13",
     "@nomicfoundation/ignition-core": "^0.15.10",
     "@openzeppelin/contracts": "^5.2.0",
@@ -37,11 +31,11 @@
     "chai": "^4.5.0",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
-    "hardhat": "^2.22.19",
     "hardhat-gas-reporter": "^2.2.2",
     "solidity-coverage": "^0.8.14",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "hardhat": "^2.22.19"
   }
 }
