@@ -6,7 +6,7 @@
   "scripts": {
     "test": "npx hardhat test",
     "deploy:holesky": "hardhat ignition deploy ignition/modules/ProxyModule.ts --network morphHolesky --deployment-id morph-holesky --verify",
-    "deploy:morph": "hardhat ignition deploy ignition/modules/ProxyModule.ts --network morph --deployment-id morph --verify",
+    "deploy:morph": "hardhat ignition deploy ignition/modules/ProxyModule.ts --network morph --deployment-id morph --verify"
   },
   "keywords": [],
   "author": "",
