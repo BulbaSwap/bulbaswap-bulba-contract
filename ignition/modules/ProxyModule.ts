@@ -1,7 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import hre from "hardhat";
 
-const TOTAL_SUPPLY = BigInt(hre.ethers.parseUnits("1000000000", "ether"));
 const TokenAddress = "0xC239fF247Ad073C6DcCDA65a9667766B64EbF093";
 
 /**
@@ -13,7 +12,6 @@ const proxyModule = buildModule("ProxyModule", (m) => {
   // so it will be the only account that can upgrade the proxy when needed.
   const proxyAdminOwner = m.getAccount(0);
 
-  const totalSupply = m.getParameter("totalSupply", TOTAL_SUPPLY);
   const token = m.getParameter("token", TokenAddress);
 
   // This is our contract that will be proxied.
