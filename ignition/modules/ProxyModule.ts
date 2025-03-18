@@ -2,6 +2,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import hre from "hardhat";
 
 const TOTAL_SUPPLY = BigInt(hre.ethers.parseUnits("1000000000", "ether"));
+const TokenAddress = "0xC239fF247Ad073C6DcCDA65a9667766B64EbF093";
 
 /**
  * This is the first module that will be run. It deploys the proxy and the
@@ -13,12 +14,12 @@ const proxyModule = buildModule("ProxyModule", (m) => {
   const proxyAdminOwner = m.getAccount(0);
 
   const totalSupply = m.getParameter("totalSupply", TOTAL_SUPPLY);
-  const token = m.contract("MockToken", ["MockToken", "MTK", totalSupply]);
+  const token = m.getParameter("token", TokenAddress);
 
   // This is our contract that will be proxied.
   // We will upgrade this contract with a new version later.
   const staking = m.contract("BulbaStaking");
-  const initData = m.encodeFunctionCall(staking, "initialize", [token, proxyAdminOwner, proxyAdminOwner]);
+  const initData = m.encodeFunctionCall(staking, "initialize", [TokenAddress, proxyAdminOwner, proxyAdminOwner]);
 
   // The TransparentUpgradeableProxy contract creates the ProxyAdmin within its constructor.
   // To read more about how this proxy is implemented, you can view the source code and comments here:
