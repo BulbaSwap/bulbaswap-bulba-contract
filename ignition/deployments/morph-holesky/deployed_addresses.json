@@ -1,6 +1,0 @@
-{
-  "ProxyModule#BulbaStaking": "0x7A8c926D70e2763cD9f45Bc6e10fEB67Ba4E1593",
-  "ProxyModule#TransparentUpgradeableProxy": "0x719a41FBB58484766f01d051084Aae6Eb8Aa5026",
-  "ProxyModule#ProxyAdmin": "0x742f351592aAd69272e2153843aD01578e7ec3cF",
-  "StakingModule#BulbaStaking": "0x719a41FBB58484766f01d051084Aae6Eb8Aa5026"
-}
