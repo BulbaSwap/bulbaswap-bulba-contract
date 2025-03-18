@@ -20,4 +20,5 @@ node_modules
 package-lock.json
 yarn.lock
 yarn-error.log
-ignition/deployments/chain-31337
+ignition/deployments/morph
+ignition/deployments/morph-holesky

@@ -1,7 +1,12 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import hre from "hardhat";
+import * as dotenv from "dotenv";
 
-const TokenAddress = "0xC239fF247Ad073C6DcCDA65a9667766B64EbF093";
+dotenv.config();
+
+// const TOTAL_SUPPLY = BigInt(hre.ethers.parseUnits("1000000000", "ether"));
+const TokenAddress = process.env.BULBA_TOKEN ?? '0x4f41C241E8b47Aac5Fa246BF61D4a0789FA7C3e2';
+console.log('TokenAddress: ', TokenAddress);
 
 /**
  * This is the first module that will be run. It deploys the proxy and the
@@ -12,6 +17,8 @@ const proxyModule = buildModule("ProxyModule", (m) => {
   // so it will be the only account that can upgrade the proxy when needed.
   const proxyAdminOwner = m.getAccount(0);
 
+  // const totalSupply = m.getParameter("totalSupply", TOTAL_SUPPLY);
+  // const token = m.contract("MockToken", ["BulbaToken", "Bulba", totalSupply]);
   const token = m.getParameter("token", TokenAddress);
 
   // This is our contract that will be proxied.
