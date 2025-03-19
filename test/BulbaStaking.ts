@@ -243,7 +243,7 @@ describe("BulbaStaking (Proxy)", function () {
 
       // Verify vesting schedule after first claim
       let vestingSchedule = await stakingProxy.vestingSchedules(addr1.address);
-      let vestedAmount1 = claimAmount1 - immediateAmount1;
+      const vestedAmount1 = claimAmount1 - immediateAmount1;
       expect(vestingSchedule.remainingAmount).to.equal(vestedAmount1);
 
       // Second claim
@@ -254,17 +254,24 @@ describe("BulbaStaking (Proxy)", function () {
       );
 
       const signature2 = await owner.signMessage(ethers.getBytes(messageHash2));
+      // Query the current block time
+      let currentBlock = await ethers.provider.getBlock("latest");
+      let currentTime = currentBlock?.timestamp ?? 0;
+      const claimStartTime = vestingSchedule.startTime;
+      // Stop block.time at this time
+      const elapsedTime = BigInt(currentTime) - BigInt(claimStartTime) + BigInt(1);
+      const claimVesAmount1 = (claimAmount1 - immediateAmount1) * BigInt(elapsedTime) / BigInt(await stakingProxy.NINETY_DAYS());
       await stakingProxy.connect(addr1).claim(claimAmount2, nonce2, signature2);
 
       // Verify immediate balance after second claim
       const immediateAmount2 = claimAmount2 * 20n / 100n;
       finalBalance = await mockToken.balanceOf(addr1.address);
-      expect(finalBalance).to.equal(preBalance + immediateAmount1 + immediateAmount2);
+      expect(finalBalance).to.equal(preBalance + claimVesAmount1 + immediateAmount1 + immediateAmount2);
 
       // Verify vesting schedule after second claim
       const vestedAmount2 = claimAmount2 - immediateAmount2;
       vestingSchedule = await stakingProxy.vestingSchedules(addr1.address);
-      expect(vestingSchedule.remainingAmount).to.equal(vestedAmount1 + vestedAmount2);
+      expect(vestingSchedule.remainingAmount).to.equal(vestedAmount1 + vestedAmount2 - claimVesAmount1);
     });
 
     it("Should correctly handle multiple calls to claimVestedTokens", async function () {
