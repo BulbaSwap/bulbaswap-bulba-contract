@@ -96,15 +96,6 @@ contract BulbaStaking is
      */
     event VestedTokensClaimed(address indexed user, uint256 amount);
 
-    // Modifier to restrict access to the backend signer
-    modifier onlyBackendSigner() {
-        require(
-            msg.sender == backendSigner,
-            "Caller is not the backend signer"
-        );
-        _;
-    }
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -218,7 +209,12 @@ contract BulbaStaking is
             amount <= stakingToken.balanceOf(address(this)),
             "Insufficient balance"
         );
-
+        {
+            uint256 vestedAmountPre = getVestedAmount(msg.sender);
+            if (vestedAmountPre > 0) {
+                _claimVestedTokens(vestedAmountPre);
+            }
+        }
         // Calculate the immediate and vested amounts
         uint256 immediateAmount = (amount * 20) / 100;
         uint256 vestedAmount = amount - immediateAmount;
@@ -242,7 +238,14 @@ contract BulbaStaking is
     function claimVestedTokens() external nonReentrant whenNotPaused {
         uint256 vestedAmount = getVestedAmount(msg.sender);
         require(vestedAmount > 0, "No vested tokens available");
+        _claimVestedTokens(vestedAmount);
+    }
 
+    /**
+     * @dev Internal function to claim vested tokens.
+     * @param vestedAmount The amount of vested tokens to claim.
+     */
+    function _claimVestedTokens(uint256 vestedAmount) internal {
         VestingSchedule storage schedule = vestingSchedules[msg.sender];
         schedule.remainingAmount -= vestedAmount;
 
