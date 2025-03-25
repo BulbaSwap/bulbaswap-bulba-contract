@@ -204,7 +204,10 @@ contract BulbaStaking is
         uint256 nonce,
         bytes calldata signature
     ) external nonReentrant whenNotPaused {
-        require(totalClaimableAmount >= amount,"Claimable amount insufficient");
+        require(
+            totalClaimableAmount >= amount,
+            "Claimable amount insufficient"
+        );
         require(nonce == nonces[msg.sender], "Invalid nonce");
         bytes32 messageHash = keccak256(
             abi.encodePacked(
@@ -263,13 +266,19 @@ contract BulbaStaking is
      * @dev Allows users to transfer staking tokens directly into the contract.
      * @param amount The amount of tokens to transfer.
      */
-    function transferStakingTokenIn(uint256 amount) external nonReentrant whenNotPaused {
+    function transferStakingTokenIn(
+        uint256 amount
+    ) external nonReentrant whenNotPaused {
         require(amount > 0, "Cannot transfer 0 tokens");
-        
+
         totalClaimableAmount += amount;
-        bool success = stakingToken.transferFrom(msg.sender, address(this), amount);
+        bool success = stakingToken.transferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
         require(success, "Token transfer failed");
-        
+
         emit TokensTransferredIn(msg.sender, amount);
     }
 
