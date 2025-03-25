@@ -43,6 +43,10 @@ contract BulbaStaking is
 
     address public backendSigner; // Address of the backend signer for secure claims
 
+    uint256 public claimableAmount; // Total amount of tokens that can be claimed
+    uint256 public vestingAmount; // Total amount of tokens that can be vested
+    uint256 public totalStakedAmount; // Total amount of tokens that can be staked
+
     // Mapping from address to lock period to stake info
     mapping(address user => mapping(uint256 lockPeriod => StakeInfo stakeInfo))
         public stakes;
@@ -96,6 +100,13 @@ contract BulbaStaking is
      */
     event VestedTokensClaimed(address indexed user, uint256 amount);
 
+    /**
+     * @dev Emitted when tokens are transferred into the contract.
+     * @param from The address transferring the tokens.
+     * @param amount The amount of tokens transferred.
+     */
+    event TokensTransferredIn(address indexed from, uint256 amount);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -137,6 +148,7 @@ contract BulbaStaking is
                 lockPeriod == NINETY_DAYS,
             "Invalid lock period"
         );
+        totalStakedAmount += amount;
         uint256 amountPre = stakes[msg.sender][lockPeriod].amount;
         stakingToken.transferFrom(msg.sender, address(this), amount);
 
@@ -175,6 +187,7 @@ contract BulbaStaking is
             "Insufficient contract balance"
         );
         delete stakes[msg.sender][lockPeriod];
+        totalStakedAmount -= stakeAmount;
         stakingToken.transfer(msg.sender, stakeAmount);
 
         emit Unstaked(msg.sender, stakeInfo.amount, lockPeriod);
@@ -191,6 +204,7 @@ contract BulbaStaking is
         uint256 nonce,
         bytes calldata signature
     ) external nonReentrant whenNotPaused {
+        require(claimableAmount >= amount,"Claimable amount insufficient");
         require(nonce == nonces[msg.sender], "Invalid nonce");
         bytes32 messageHash = keccak256(
             abi.encodePacked(
@@ -219,6 +233,10 @@ contract BulbaStaking is
         uint256 immediateAmount = (amount * 20) / 100;
         uint256 vestedAmount = amount - immediateAmount;
 
+        // Update the claimable amount and vesting amount
+        claimableAmount -= amount;
+        vestingAmount += vestedAmount;
+
         // Update the vesting schedule for the user
         VestingSchedule storage schedule = vestingSchedules[msg.sender];
         schedule.remainingAmount += vestedAmount;
@@ -242,16 +260,17 @@ contract BulbaStaking is
     }
 
     /**
-     * @dev Internal function to claim vested tokens.
-     * @param vestedAmount The amount of vested tokens to claim.
+     * @dev Allows users to transfer staking tokens directly into the contract.
+     * @param amount The amount of tokens to transfer.
      */
-    function _claimVestedTokens(uint256 vestedAmount) internal {
-        VestingSchedule storage schedule = vestingSchedules[msg.sender];
-        schedule.remainingAmount -= vestedAmount;
-
-        stakingToken.transfer(msg.sender, vestedAmount);
-        // Emit the event
-        emit VestedTokensClaimed(msg.sender, vestedAmount);
+    function transferStakingTokenIn(uint256 amount) external nonReentrant whenNotPaused {
+        require(amount > 0, "Cannot transfer 0 tokens");
+        
+        claimableAmount += amount;
+        bool success = stakingToken.transferFrom(msg.sender, address(this), amount);
+        require(success, "Token transfer failed");
+        
+        emit TokensTransferredIn(msg.sender, amount);
     }
 
     /**
@@ -390,6 +409,20 @@ contract BulbaStaking is
             schedule.remainingAmount;
 
         return totalVested - alreadyReleased;
+    }
+
+    /**
+     * @dev Internal function to claim vested tokens.
+     * @param vestedAmount The amount of vested tokens to claim.
+     */
+    function _claimVestedTokens(uint256 vestedAmount) internal {
+        VestingSchedule storage schedule = vestingSchedules[msg.sender];
+        schedule.remainingAmount -= vestedAmount;
+        vestingAmount -= vestedAmount;
+
+        stakingToken.transfer(msg.sender, vestedAmount);
+        // Emit the event
+        emit VestedTokensClaimed(msg.sender, vestedAmount);
     }
 
     // Gap for future upgrades
