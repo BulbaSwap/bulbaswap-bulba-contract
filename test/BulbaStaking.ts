@@ -172,7 +172,7 @@ describe("BulbaStaking (Proxy)", function () {
       await stakingProxy.transferStakingTokenIn(STAKE_AMOUNT)
       await stakingProxy.connect(addr1).claim(claimAmount, nonce, signature);
       // Verify vesting amount
-      let contractVestingAmount = await stakingProxy.vestingAmount();
+      let contractVestingAmount = await stakingProxy.totalVestingAmount();
       expect(contractVestingAmount).to.equal(claimAmount * 80n / 100n);
 
       // Advance time to allow vesting
@@ -188,7 +188,7 @@ describe("BulbaStaking (Proxy)", function () {
       expect(finalBalance).to.equal(preBalance + vestedAmount);
 
       // Verify vesting amount
-      contractVestingAmount = await stakingProxy.vestingAmount();
+      contractVestingAmount = await stakingProxy.totalVestingAmount();
       expect(contractVestingAmount).to.equal(0);
     });
 
@@ -308,7 +308,7 @@ describe("BulbaStaking (Proxy)", function () {
       let immediateAmount = claimAmount * 20n / 100n;
       expect(await mockToken.balanceOf(addr1.address)).to.equal(preBalance + immediateAmount);
       // Verify vesting amount after first claim
-      let vestingAmount = await stakingProxy.vestingAmount();
+      let vestingAmount = await stakingProxy.totalVestingAmount();
       expect(vestingAmount).to.equal(claimAmount - immediateAmount);
       // Advance time to allow partial vesting
       await time.increase(45 * 24 * 60 * 60); // Advance 45 days
@@ -326,7 +326,7 @@ describe("BulbaStaking (Proxy)", function () {
       let finalBalance = await mockToken.balanceOf(addr1.address);
       // Verify that half of the vested amount is claimed
       expect(finalBalance).to.equal(preBalance + totalVestedAmount);
-      vestingAmount = await stakingProxy.vestingAmount();
+      vestingAmount = await stakingProxy.totalVestingAmount();
       expect(vestingAmount).to.equal(claimAmount - totalVestedAmount - immediateAmount);
       // Advance time to allow full vesting
       await time.increase(45 * 24 * 60 * 60); // Advance another 45 days
@@ -365,7 +365,7 @@ describe("BulbaStaking (Proxy)", function () {
       const balanceAfterClaim = await mockToken.balanceOf(addr1.address);
       const immediateAmount = claimAmount1 * 20n / 100n;
       expect(balanceAfterClaim).to.equal(preBalance + immediateAmount);
-      let vestingAmount = await stakingProxy.vestingAmount();
+      let vestingAmount = await stakingProxy.totalVestingAmount();
       expect(vestingAmount).to.equal(claimAmount1 - immediateAmount);
 
       // Advance time to allow partial vesting
@@ -399,7 +399,7 @@ describe("BulbaStaking (Proxy)", function () {
       // Verify final balance
       const finalBalance = await mockToken.balanceOf(addr1.address);
       expect(finalBalance).to.equal(ethers.parseEther("10000") + claimAmount2 + claimAmount1);
-      vestingAmount = await stakingProxy.vestingAmount();
+      vestingAmount = await stakingProxy.totalVestingAmount();
       expect(vestingAmount).to.equal(0);
     });
   });
@@ -500,8 +500,8 @@ describe("BulbaStaking (Proxy)", function () {
       const transferAmount = ethers.parseEther("1000");
       const initialBalance = await mockToken.balanceOf(addr1.address);
       const initialContractBalance = await mockToken.balanceOf(await stakingProxy.getAddress());
-      const initialClaimableAmount = await stakingProxy.claimableAmount();
-      const initialVestingAmount = await stakingProxy.vestingAmount();
+      const initialClaimableAmount = await stakingProxy.totalClaimableAmount();
+      const initialVestingAmount = await stakingProxy.totalVestingAmount();
       const initialTotalStakedAmount = await stakingProxy.totalStakedAmount();
 
       await stakingProxy.connect(addr1).transferStakingTokenIn(transferAmount);
@@ -511,13 +511,13 @@ describe("BulbaStaking (Proxy)", function () {
       expect(await mockToken.balanceOf(await stakingProxy.getAddress())).to.equal(initialContractBalance + transferAmount);
 
       // Verify claimable amount increased and other amounts unchanged
-      expect(await stakingProxy.claimableAmount()).to.equal(initialClaimableAmount + transferAmount);
-      expect(await stakingProxy.vestingAmount()).to.equal(initialVestingAmount);
+      expect(await stakingProxy.totalClaimableAmount()).to.equal(initialClaimableAmount + transferAmount);
+      expect(await stakingProxy.totalVestingAmount()).to.equal(initialVestingAmount);
       expect(await stakingProxy.totalStakedAmount()).to.equal(initialTotalStakedAmount);
     });
 
     it("Should not allow transferring 0 tokens", async function () {
-      const initialVestingAmount = await stakingProxy.vestingAmount();
+      const initialVestingAmount = await stakingProxy.totalVestingAmount();
       const initialTotalStakedAmount = await stakingProxy.totalStakedAmount();
 
       await expect(
@@ -525,12 +525,12 @@ describe("BulbaStaking (Proxy)", function () {
       ).to.be.revertedWith("Cannot transfer 0 tokens");
 
       // Verify amounts remain unchanged
-      expect(await stakingProxy.vestingAmount()).to.equal(initialVestingAmount);
+      expect(await stakingProxy.totalVestingAmount()).to.equal(initialVestingAmount);
       expect(await stakingProxy.totalStakedAmount()).to.equal(initialTotalStakedAmount);
     });
 
     it("Should not allow transferring when contract is paused", async function () {
-      const initialVestingAmount = await stakingProxy.vestingAmount();
+      const initialVestingAmount = await stakingProxy.totalVestingAmount();
       const initialTotalStakedAmount = await stakingProxy.totalStakedAmount();
       await stakingProxy.connect(owner).pause();
 
@@ -539,13 +539,13 @@ describe("BulbaStaking (Proxy)", function () {
       ).to.be.revertedWithCustomError(stakingProxy, "EnforcedPause");
 
       // Verify amounts remain unchanged
-      expect(await stakingProxy.vestingAmount()).to.equal(initialVestingAmount);
+      expect(await stakingProxy.totalVestingAmount()).to.equal(initialVestingAmount);
       expect(await stakingProxy.totalStakedAmount()).to.equal(initialTotalStakedAmount);
     });
 
     it("Should emit TokensTransferredIn event with correct parameters", async function () {
       const transferAmount = ethers.parseEther("1000");
-      const initialVestingAmount = await stakingProxy.vestingAmount();
+      const initialVestingAmount = await stakingProxy.totalVestingAmount();
       const initialTotalStakedAmount = await stakingProxy.totalStakedAmount();
 
       await expect(stakingProxy.connect(addr1).transferStakingTokenIn(transferAmount))
@@ -553,25 +553,25 @@ describe("BulbaStaking (Proxy)", function () {
         .withArgs(addr1.address, transferAmount);
 
       // Verify amounts remain unchanged
-      expect(await stakingProxy.vestingAmount()).to.equal(initialVestingAmount);
+      expect(await stakingProxy.totalVestingAmount()).to.equal(initialVestingAmount);
       expect(await stakingProxy.totalStakedAmount()).to.equal(initialTotalStakedAmount);
     });
 
     it("Should update claimable amount correctly for multiple transfers", async function () {
       const transferAmount1 = ethers.parseEther("500");
       const transferAmount2 = ethers.parseEther("300");
-      const initialClaimableAmount = await stakingProxy.claimableAmount();
-      const initialVestingAmount = await stakingProxy.vestingAmount();
+      const initialClaimableAmount = await stakingProxy.totalClaimableAmount();
+      const initialVestingAmount = await stakingProxy.totalVestingAmount();
       const initialTotalStakedAmount = await stakingProxy.totalStakedAmount();
 
       await stakingProxy.connect(addr1).transferStakingTokenIn(transferAmount1);
       await stakingProxy.connect(addr2).transferStakingTokenIn(transferAmount2);
 
-      expect(await stakingProxy.claimableAmount()).to.equal(
+      expect(await stakingProxy.totalClaimableAmount()).to.equal(
         initialClaimableAmount + transferAmount1 + transferAmount2
       );
       // Verify other amounts remain unchanged
-      expect(await stakingProxy.vestingAmount()).to.equal(initialVestingAmount);
+      expect(await stakingProxy.totalVestingAmount()).to.equal(initialVestingAmount);
       expect(await stakingProxy.totalStakedAmount()).to.equal(initialTotalStakedAmount);
     });
 

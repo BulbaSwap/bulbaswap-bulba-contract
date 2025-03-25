@@ -43,8 +43,8 @@ contract BulbaStaking is
 
     address public backendSigner; // Address of the backend signer for secure claims
 
-    uint256 public claimableAmount; // Total amount of tokens that can be claimed
-    uint256 public vestingAmount; // Total amount of tokens that can be vested
+    uint256 public totalClaimableAmount; // Total amount of tokens that can be claimed
+    uint256 public totalVestingAmount; // Total amount of tokens that can be vested
     uint256 public totalStakedAmount; // Total amount of tokens that can be staked
 
     // Mapping from address to lock period to stake info
@@ -204,7 +204,7 @@ contract BulbaStaking is
         uint256 nonce,
         bytes calldata signature
     ) external nonReentrant whenNotPaused {
-        require(claimableAmount >= amount,"Claimable amount insufficient");
+        require(totalClaimableAmount >= amount,"Claimable amount insufficient");
         require(nonce == nonces[msg.sender], "Invalid nonce");
         bytes32 messageHash = keccak256(
             abi.encodePacked(
@@ -234,8 +234,8 @@ contract BulbaStaking is
         uint256 vestedAmount = amount - immediateAmount;
 
         // Update the claimable amount and vesting amount
-        claimableAmount -= amount;
-        vestingAmount += vestedAmount;
+        totalClaimableAmount -= amount;
+        totalVestingAmount += vestedAmount;
 
         // Update the vesting schedule for the user
         VestingSchedule storage schedule = vestingSchedules[msg.sender];
@@ -266,7 +266,7 @@ contract BulbaStaking is
     function transferStakingTokenIn(uint256 amount) external nonReentrant whenNotPaused {
         require(amount > 0, "Cannot transfer 0 tokens");
         
-        claimableAmount += amount;
+        totalClaimableAmount += amount;
         bool success = stakingToken.transferFrom(msg.sender, address(this), amount);
         require(success, "Token transfer failed");
         
@@ -418,7 +418,7 @@ contract BulbaStaking is
     function _claimVestedTokens(uint256 vestedAmount) internal {
         VestingSchedule storage schedule = vestingSchedules[msg.sender];
         schedule.remainingAmount -= vestedAmount;
-        vestingAmount -= vestedAmount;
+        totalVestingAmount -= vestedAmount;
 
         stakingToken.transfer(msg.sender, vestedAmount);
         // Emit the event
