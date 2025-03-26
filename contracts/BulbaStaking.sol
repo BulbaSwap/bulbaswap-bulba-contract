@@ -45,7 +45,7 @@ contract BulbaStaking is
 
     uint256 public totalClaimableAmount; // Total amount of tokens that can be claimed
     uint256 public totalVestingAmount; // Total amount of tokens that can be vested
-    uint256 public totalStakedAmount; // Total amount of tokens that can be staked
+    uint256 public totalStakedAmount; // Total amount of tokens staked
 
     // Mapping from address to lock period to stake info
     mapping(address user => mapping(uint256 lockPeriod => StakeInfo stakeInfo))
